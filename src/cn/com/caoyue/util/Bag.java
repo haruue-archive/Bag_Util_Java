@@ -7,15 +7,21 @@
 
 package cn.com.caoyue.util;
 
+import java.util.ConcurrentModificationException;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+
 /**
  * 一个可包含重复元素的集合类，正如其名称所暗示的，其模仿生活中常见的 bag 抽象。
+ * 不要在这个集合中保存 null ，因为它们总是会被忽略。
  * @param <E> 此 bag 所维护的元素类型
  */
 public class Bag<E>
-        implements IBag<E> {
+        implements IBag<E>, Iterable<E> {
     private Object[] bagArray;
     private int size;
     private int length = 0;
+    private int modCount;
 
     /**
      * 构造一个初始大小为 size 的 bag
@@ -41,12 +47,13 @@ public class Bag<E>
      */
     @Override
     public void add(E e) {
+        modCount++;
         if (length < size) {
             bagArray[length] = e;
             length++;
         } else {
             Object origArray[] = bagArray;
-            bagArray = new Object[size+1];
+            bagArray = new Object[size + 1];
             System.arraycopy(origArray, 0, bagArray, 0, size);
             bagArray[size] = e;
             size++;
@@ -61,12 +68,13 @@ public class Bag<E>
      */
     @Override
     public void remove(E e) {
+        modCount++;
         if (null == e) return;  //不能删除 null
         while (true) {
             int index = indexOf(e);
             if (index < 0) return;  //删除完所有 e 就退出循环
-            bagArray[index] = bagArray[length-1];
-            bagArray[length-1] = null;
+            bagArray[index] = bagArray[length - 1];
+            bagArray[length - 1] = null;
             length--;
         }
     }
@@ -79,12 +87,13 @@ public class Bag<E>
      */
     @Override
     public void remove(E e, int count) {
+        modCount++;
         if (null == e) return;
         while (true) {
             int index = indexOf(e);
             if (index < 0 || count <= 0) return;
-            bagArray[index] = bagArray[length-1];
-            bagArray[length-1] = null;
+            bagArray[index] = bagArray[length - 1];
+            bagArray[length - 1] = null;
             length--;
         }
     }
@@ -94,6 +103,7 @@ public class Bag<E>
      */
     @Override
     public void clear() {
+        modCount++;
         bagArray = new Object[size];
         length = 0;
     }
@@ -116,7 +126,7 @@ public class Bag<E>
      */
     @Override
     public E getIndex(int index) {
-        return (E)bagArray[index];
+        return (E) bagArray[index];
     }
 
     /**
@@ -132,8 +142,9 @@ public class Bag<E>
 
     /**
      * 在 bag 中寻找指定的元素，相当于 indexOf(o, 0)
-     *
+     * <p>
      * 请注意，在对 bag 做出任何修改操作之后，请重新使用改方法来获取新的位置
+     *
      * @param o 要寻找的元素
      * @return 元素在 bag 中第一次出现的位置所对应的索引值，如果没有找到，返回负值
      */
@@ -144,8 +155,9 @@ public class Bag<E>
 
     /**
      * 从某一项开始，在 bag 中寻找指定的元素
-     *
+     * <p>
      * 请注意，在对 bag 做出任何修改操作之后，请重新使用改方法来获取新的位置
+     *
      * @param o          要寻找的元素
      * @param startIndex 寻找的起始位置
      * @return 元素在 bag 中寻找起始位置之后第一次出现的位置所对应的索引值，如果没有找到，返回负值
@@ -182,6 +194,7 @@ public class Bag<E>
 
     /**
      * 将该 bag 转换为字符串
+     *
      * @return 表示该 bag 的字符串
      */
     @Override
@@ -195,5 +208,32 @@ public class Bag<E>
             sb.append(',').append(' ');
         }
         return sb.append("]").toString();
+    }
+
+    /**
+     * 返回在此 bag 中的元素上进行迭代的迭代器
+     *
+     * @return 在此 bag 中的元素上进行迭代的迭代器
+     */
+    @Override
+    public Iterator<E> iterator() {
+        return new Iterator<E>() {
+            int cursor;
+            int expectedModCount = modCount;
+
+            @Override
+            public boolean hasNext() {
+                return cursor != length;
+            }
+
+            @Override
+            public E next() {
+                int i = cursor;
+                if (i >= length)
+                    throw new NoSuchElementException();
+                cursor++;
+                return (E) bagArray[i];
+            }
+        };
     }
 }

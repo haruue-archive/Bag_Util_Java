@@ -34,5 +34,8 @@ public class Test {
         System.out.println(bag.indexOf(50,1));
         System.out.println(bag.indexOf(50,2));
         System.out.println(bag.getIndex(0));
+        for (Integer i: bag) {
+            System.out.println(i);
+        }
     }
 }
